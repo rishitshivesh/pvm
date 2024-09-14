@@ -210,6 +210,9 @@ case "$1" in
     add-to-profile)
         add_pvm_to_profile
         ;;
+    upgrade)
+        pvm_upgrade
+        ;;
     *)
         echo "Usage: pvm {install|use|ls|uninstall|add-to-path} [version]" >&2
         ;;
