@@ -100,7 +100,7 @@ pvm_use() {
     # Fetch the latest version if only major or minor version is specified
     if echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
         print_info "Fetching the latest version for $version_to_use..."
-        version_to_use=$(fetch_latest_version)
+        version_to_use=$(fetch_latest_python_version)
         if [ $? -ne 0 ]; then
             return 1
         fi
@@ -177,7 +177,7 @@ add_pvm_to_profile() {
 }
 
 pvm_upgrade() {
-    LATEST_VERSION=$(fetch_latest_version)
+    LATEST_VERSION=$(fetch_latest_pvm_version)
     CURRENT_VERSION=$(cat "$PVM_DIR/VERSION" 2>/dev/null || echo "none")
 
     if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
