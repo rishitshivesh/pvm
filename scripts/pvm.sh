@@ -24,16 +24,15 @@ fetch_latest_pvm_version() {
 }
 
 
-# Function to fetch the latest Python version from Python.org
+# Function to fetch the latest Python version for a given major/minor version
 fetch_latest_python_version() {
     version_prefix="$1"
-    # Fetch the list of available Python versions and filter based on the prefix
-    latest_version=$(curl -s https://www.python.org/ftp/python/ | grep -Eo "$version_prefix\.[0-9]+/" | sort -V | tail -n 1 | tr -d '/')
-    if [ -z "$latest_version" ]; then
-        echo "Could not find a valid Python version for $version_prefix"
+    latest_python_version=$(curl -s https://www.python.org/ftp/python/ | grep -Eo "$version_prefix\.[0-9]+/" | sort -V | tail -n 1 | tr -d '/')
+    if [ -z "$latest_python_version" ]; then
+        print_error "Could not find a valid Python version for $version_prefix"
         return 1
     fi
-    echo "$latest_version"
+    echo "$latest_python_version"
 }
 
 # Function to install a Python version
@@ -89,31 +88,6 @@ pvm_install() {
     echo "Python $PYTHON_VERSION installed successfully in $PYTHON_INSTALL_DIR."
 }
 
-#!/bin/sh
-
-# Directory where PVM is installed
-PVM_DIR="${HOME}/.pvm"
-PVM_CURRENT_VERSION_FILE="$PVM_DIR/.current_version"
-PVM_LATEST_RELEASE_URL="https://api.github.com/repos/rishitshivesh/pvm/releases/latest"
-
-# Function to print colorful messages
-print_info() {
-    printf "\033[1;32m$1\033[0m\n"  # Green
-}
-
-print_warning() {
-    printf "\033[1;33m$1\033[0m\n"  # Yellow
-}
-
-print_error() {
-    printf "\033[1;31m$1\033[0m\n"  # Red
-}
-
-# Function to fetch the latest GitHub release tag
-fetch_latest_version() {
-    curl -s "$PVM_LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
-}
-
 # Function to use a Python version and override system Python
 pvm_use() {
     if [ -z "$1" ]; then
@@ -123,14 +97,14 @@ pvm_use() {
 
     version_to_use="$1"
 
-    # Fetch the latest version if only major or minor version is specified
+    # Fetch the latest Python version if only major or minor version is specified
     if echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
-        print_info "Fetching the latest version for $version_to_use..."
-        version_to_use=$(fetch_latest_version)
+        print_info "Fetching the latest Python version for $version_to_use..."
+        version_to_use=$(fetch_latest_python_version "$version_to_use")
         if [ $? -ne 0 ]; then
             return 1
         fi
-        print_info "Latest version found: $version_to_use"
+        print_info "Latest Python version found: $version_to_use"
     fi
 
     if [ ! -d "$PVM_DIR/versions/$version_to_use" ]; then
@@ -149,9 +123,15 @@ pvm_use() {
        sudo ln -sf "$PVM_DIR/versions/$version_to_use/bin/python3" /usr/local/bin/python3; then
         print_info "System Python version updated to $version_to_use"
     else
-        print_error "Failed to update system Python. You may need to run the following manually:"
+        print_error "Failed to update system Python. You may need to run this manually:"
         print_error "sudo ln -sf \"$PVM_DIR/versions/$version_to_use/bin/python\" /usr/local/bin/python"
         print_error "sudo ln -sf \"$PVM_DIR/versions/$version_to_use/bin/python3\" /usr/local/bin/python3"
+    fi
+
+    # Compare the actual system Python version
+    actual_python_version=$(python3 --version 2>&1 | awk '{print $2}')
+    if [ "$actual_python_version" != "$version_to_use" ]; then
+        print_warning "There is a mismatch between the PVM-managed Python version ($version_to_use) and the system Python version ($actual_python_version)."
     fi
 }
 
@@ -159,7 +139,7 @@ pvm_use() {
 pvm_current() {
     if [ -f "$PVM_CURRENT_VERSION_FILE" ]; then
         current_version=$(cat "$PVM_CURRENT_VERSION_FILE")
-        print_info "Current Python version in use: $current_version"
+        print_info "Current Python version in use by PVM: $current_version"
     else
         print_warning "No Python version is currently being used via PVM."
     fi
