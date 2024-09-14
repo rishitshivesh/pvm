@@ -91,7 +91,7 @@ pvm_install() {
 # Function to use a Python version
 pvm_use() {
     if [ -z "$1" ]; then
-        echo "Please specify a version" >&2
+        print_error "Please specify a version to use"
         return 1
     fi
 
@@ -99,21 +99,29 @@ pvm_use() {
 
     # Fetch the latest version if only major or minor version is specified
     if echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
-        echo "Fetching the latest version for $version_to_use..."
-        version_to_use=$(fetch_latest_python_version "$version_to_use")
+        print_info "Fetching the latest version for $version_to_use..."
+        version_to_use=$(fetch_latest_version)
         if [ $? -ne 0 ]; then
             return 1
         fi
-        echo "Latest version found: $version_to_use"
+        print_info "Latest version found: $version_to_use"
     fi
 
     if [ ! -d "$PVM_DIR/versions/$version_to_use" ]; then
-        echo "Version $version_to_use not installed. Installing now..."
+        print_info "Version $version_to_use not installed. Installing now..."
         pvm_install "$version_to_use"
     fi
 
     export PATH="$PVM_DIR/versions/$version_to_use/bin:$PATH"
-    echo "Now using Python $version_to_use"
+    print_info "Now using Python $version_to_use"
+
+    # Update the system-wide Python version
+    if sudo ln -sf "$PVM_DIR/versions/$version_to_use/bin/python" /usr/local/bin/python; then
+        print_info "System Python version updated to $version_to_use"
+    else
+        print_error "Failed to update system Python. You may need to run this manually:"
+        print_error "sudo ln -sf \"$PVM_DIR/versions/$version_to_use/bin/python\" /usr/local/bin/python"
+    fi
 }
 
 
