@@ -13,7 +13,7 @@ PVM is a POSIX-compliant Python Version Manager that allows you to install, mana
 1. Install PVM using Homebrew:
 
    ```bash
-   brew tap youruser/pvm
+   brew tap rishitshivesh/pvm
    brew install pvm
    ```
 

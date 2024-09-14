@@ -43,19 +43,45 @@ pvm_install() {
     echo "Python $PYTHON_VERSION installed successfully."
 }
 
-# Function to switch Python versions
+fetch_latest_python_version() {
+    # Fetch the available Python versions from the Python website
+    version_prefix="$1"
+    curl -s https://www.python.org/ftp/python/ | grep -Eo "$version_prefix\.[0-9]+/" | sort -V | tail -n 1 | tr -d '/'
+}
+
+# Function to use PVM
 pvm_use() {
     if [ -z "$1" ]; then
         echo "Please specify a version" >&2
         return 1
     fi
-    if [ ! -d "$PVM_DIR/versions/$1" ]; then
-        echo "Version $1 not installed" >&2
+
+    # Check if it's a major version (e.g., 3) or minor version (e.g., 3.10)
+    if echo "$1" | grep -Eq '^[0-9]+\.[0-9]+$'; then
+        # It's a minor version (e.g., 3.10)
+        version_to_use=$(fetch_latest_python_version "$1")
+    elif echo "$1" | grep -Eq '^[0-9]+$'; then
+        # It's a major version (e.g., 3)
+        version_to_use=$(fetch_latest_python_version "$1")
+    else
+        # It's a specific version (e.g., 3.9.7)
+        version_to_use="$1"
+    fi
+
+    if [ -z "$version_to_use" ]; then
+        echo "Could not find a valid version for $1"
         return 1
     fi
-    export PATH="$PVM_DIR/versions/$1/bin:$PATH"
-    echo "Now using Python $1"
+
+    if [ ! -d "$PVM_DIR/versions/$version_to_use" ]; then
+        echo "Version $version_to_use not installed. Installing now..."
+        pvm_install "$version_to_use"
+    fi
+
+    export PATH="$PVM_DIR/versions/$version_to_use/bin:$PATH"
+    echo "Now using Python $version_to_use"
 }
+
 
 # List installed Python versions
 pvm_list() {
