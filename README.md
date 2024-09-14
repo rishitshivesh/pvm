@@ -37,6 +37,10 @@ If you're on macOS or a Linux distribution that supports Homebrew, you can insta
    ```bash
    source ~/.bashrc  # Or source ~/.zshrc for Zsh users
    ```
+5. **Create a Link if pvm doesn't work**:
+   ```bash
+   sudo ln -sf "$HOME/.pvm/pvm.sh" /usr/local/bin/pvm
+   ```
 
 #### 2. Install PVM using `curl`
 
