@@ -1,21 +1,38 @@
 name: Release PVM
 
+# Trigger the workflow when a new tag is pushed
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*'  # This triggers the workflow for any tag that starts with 'v'
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Use GitHub's free runner
 
     steps:
-      - name: Checkout code
+      # Check out the repository code
+      - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
+      # Create a GitHub Release
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub automatically provides this token
         with:
-          files: |
-            scripts/pvm.sh
-            Formula/pvm.rb
+          tag_name: ${{ github.ref }}  # Use the pushed tag as the release tag
+          release_name: "Release ${{ github.ref }}"  # Use the tag as the release name
+          body: "Automatic release for version ${{ github.ref }}"  # Release description
+          draft: false
+          prerelease: false
+
+      # Optional: Upload assets to the release (e.g., tarballs, binaries)
+      # - name: Upload Release Asset
+      #   uses: actions/upload-release-asset@v1
+      #   with:
+      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
+      #     asset_path: ./path/to/your/asset.zip
+      #     asset_name: asset.zip
+      #     asset_content_type: application/zip
