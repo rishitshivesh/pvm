@@ -56,13 +56,14 @@ pvm_install() {
     fi
 
     PYTHON_INSTALL_DIR="$PVM_DIR/versions/$PYTHON_VERSION"
-    mkdir -p "$PYTHON_INSTALL_DIR"
 
     # Check if already installed
     if [ -d "$PYTHON_INSTALL_DIR" ]; then
         echo "Python $PYTHON_VERSION is already installed."
         return 0
     fi
+
+    mkdir -p "$PYTHON_INSTALL_DIR"
 
     # Download Python source code to PVM_DIR/versions
     cd "$PVM_DIR/versions" || return 1
@@ -88,7 +89,32 @@ pvm_install() {
     echo "Python $PYTHON_VERSION installed successfully in $PYTHON_INSTALL_DIR."
 }
 
-# Function to use a Python version
+#!/bin/sh
+
+# Directory where PVM is installed
+PVM_DIR="${HOME}/.pvm"
+PVM_CURRENT_VERSION_FILE="$PVM_DIR/.current_version"
+PVM_LATEST_RELEASE_URL="https://api.github.com/repos/rishitshivesh/pvm/releases/latest"
+
+# Function to print colorful messages
+print_info() {
+    printf "\033[1;32m$1\033[0m\n"  # Green
+}
+
+print_warning() {
+    printf "\033[1;33m$1\033[0m\n"  # Yellow
+}
+
+print_error() {
+    printf "\033[1;31m$1\033[0m\n"  # Red
+}
+
+# Function to fetch the latest GitHub release tag
+fetch_latest_version() {
+    curl -s "$PVM_LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+# Function to use a Python version and override system Python
 pvm_use() {
     if [ -z "$1" ]; then
         print_error "Please specify a version to use"
@@ -100,7 +126,7 @@ pvm_use() {
     # Fetch the latest version if only major or minor version is specified
     if echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$'; then
         print_info "Fetching the latest version for $version_to_use..."
-        version_to_use=$(fetch_latest_python_version)
+        version_to_use=$(fetch_latest_version)
         if [ $? -ne 0 ]; then
             return 1
         fi
@@ -115,15 +141,33 @@ pvm_use() {
     export PATH="$PVM_DIR/versions/$version_to_use/bin:$PATH"
     print_info "Now using Python $version_to_use"
 
-    # Update the system-wide Python version
-    if sudo ln -sf "$PVM_DIR/versions/$version_to_use/bin/python" /usr/local/bin/python; then
+    # Track the current version being used
+    echo "$version_to_use" > "$PVM_CURRENT_VERSION_FILE"
+
+    # Update the system-wide Python version (for both python and python3)
+    if sudo ln -sf "$PVM_DIR/versions/$version_to_use/bin/python" /usr/local/bin/python && \
+       sudo ln -sf "$PVM_DIR/versions/$version_to_use/bin/python3" /usr/local/bin/python3; then
         print_info "System Python version updated to $version_to_use"
     else
-        print_error "Failed to update system Python. You may need to run this manually:"
+        print_error "Failed to update system Python. You may need to run the following manually:"
         print_error "sudo ln -sf \"$PVM_DIR/versions/$version_to_use/bin/python\" /usr/local/bin/python"
+        print_error "sudo ln -sf \"$PVM_DIR/versions/$version_to_use/bin/python3\" /usr/local/bin/python3"
     fi
 }
 
+# Function to show the current Python version
+pvm_current() {
+    if [ -f "$PVM_CURRENT_VERSION_FILE" ]; then
+        current_version=$(cat "$PVM_CURRENT_VERSION_FILE")
+        print_info "Current Python version in use: $current_version"
+    else
+        print_warning "No Python version is currently being used via PVM."
+    fi
+
+    # Also print the system's current Python version
+    system_python_version=$(python3 --version 2>&1)
+    print_info "System Python version: $system_python_version"
+}
 
 # List installed Python versions
 pvm_list() {
@@ -190,13 +234,42 @@ pvm_upgrade() {
     fi
 }
 
-# Main entry point
+
+print_greeting() {
+    # Get the PVM version
+    pvm_version=$(cat "$PVM_DIR/VERSION" 2>/dev/null || echo "unknown")
+
+    # Get the currently used Python version
+    if [ -f "$PVM_CURRENT_VERSION_FILE" ]; then
+        current_python_version=$(cat "$PVM_CURRENT_VERSION_FILE")
+    else
+        current_python_version="none"
+    fi
+
+    # Print the greeting message
+    printf "\033[1;36mHello, friend! \033[1;35mUsing pvm@$pvm_version.\033[0m\n"  # Cyan and Purple
+    printf "\033[1;32mPython current version at - \033[1;33m$current_python_version\033[0m\n"  # Green and Yellow
+    printf "\033[1;32mSteps to use:\033[0m\n"
+    printf "\033[1;32m  - To install a version: \033[1;33mpvm install <version>\033[0m\n"
+    printf "\033[1;32m  - To use a version: \033[1;33mpvm use <version>\033[0m\n"
+    printf "\033[1;32m  - To list installed versions: \033[1;33mpvm list\033[0m\n"
+    printf "\033[1;32m  - To upgrade PVM: \033[1;33mpvm upgrade\033[0m\n"
+    printf "\033[1;32m  - To check the current Python version: \033[1;33mpvm current\033[0m\n"
+}
+
+# Main entry point for PVM
 case "$1" in
+    upgrade)
+        pvm_upgrade
+        ;;
     install)
         pvm_install "$2"
         ;;
     use)
         pvm_use "$2"
+        ;;
+    current)
+        pvm_current
         ;;
     ls | list)
         pvm_list
@@ -207,13 +280,7 @@ case "$1" in
     add-to-path)
         pvm_add_to_path
         ;;
-    add-to-profile)
-        add_pvm_to_profile
-        ;;
-    upgrade)
-        pvm_upgrade
-        ;;
     *)
-        echo "Usage: pvm {install|use|ls|uninstall|add-to-path} [version]" >&2
+        print_greeting
         ;;
 esac
