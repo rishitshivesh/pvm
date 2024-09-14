@@ -9,7 +9,7 @@ else
     mkdir -p "$PVM_DIR"
 
     # Download pvm.sh to the correct location
-    curl -o "$PVM_DIR/pvm.sh" https://raw.githubusercontent.com/rishitshivesh/pvm/main/pvm.sh
+    curl -o "$PVM_DIR/pvm.sh" https://raw.githubusercontent.com/rishitshivesh/pvm/main/scripts/pvm.sh
 
     echo "To complete installation, add the following to your shell profile:"
     echo 'export PVM_DIR="$HOME/.pvm"'

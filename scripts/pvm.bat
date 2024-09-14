@@ -1,4 +1,3 @@
-@echo off
 set PVM_HOME=%USERPROFILE%\.pvm
 
 if not exist "%PVM_HOME%\versions" (

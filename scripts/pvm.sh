@@ -4,33 +4,19 @@
 export PVM_DIR="${HOME}/.pvm"
 mkdir -p "$PVM_DIR/versions"  # Ensure the versions directory exists
 
-# Function to source the active version
-pvm_use() {
-    if [ -z "$1" ]; then
-        echo "Please specify a version" >&2
-        return 1
-    fi
-    if [ ! -d "$PVM_DIR/versions/$1" ]; then
-        echo "Version $1 not installed" >&2
-        return 1
-    fi
-    export PATH="$PVM_DIR/versions/$1/bin:$PATH"
-    echo "Now using Python $1"
-}
-
+# Function to install a Python version
 pvm_install() {
     if [ -z "$1" ]; then
         echo "Please specify a version to install" >&2
         return 1
     fi
 
-    # Define the Python version to install
     PYTHON_VERSION="$1"
     PYTHON_INSTALL_DIR="$PVM_DIR/versions/$PYTHON_VERSION"
 
     # Check if already installed
     if [ -d "$PYTHON_INSTALL_DIR" ]; then
-        echo "Python $PYTHON_VERSION is already installed." >&2
+        echo "Python $PYTHON_VERSION is already installed."
         return 0
     fi
 
@@ -57,41 +43,46 @@ pvm_install() {
     echo "Python $PYTHON_VERSION installed successfully."
 }
 
+# Function to switch Python versions
+pvm_use() {
+    if [ -z "$1" ]; then
+        echo "Please specify a version" >&2
+        return 1
+    fi
+    if [ ! -d "$PVM_DIR/versions/$1" ]; then
+        echo "Version $1 not installed" >&2
+        return 1
+    fi
+    export PATH="$PVM_DIR/versions/$1/bin:$PATH"
+    echo "Now using Python $1"
+}
+
+# List installed Python versions
 pvm_list() {
     echo "Installed Python versions:"
     ls "$PVM_DIR/versions"
 }
 
+# Uninstall a Python version
 pvm_uninstall() {
     if [ -z "$1" ]; then
         echo "Please specify a version to uninstall" >&2
         return 1
     fi
-
-    PYTHON_VERSION="$1"
-    PYTHON_INSTALL_DIR="$PVM_DIR/versions/$PYTHON_VERSION"
-
-    # Check if installed
+    PYTHON_INSTALL_DIR="$PVM_DIR/versions/$1"
     if [ ! -d "$PYTHON_INSTALL_DIR" ]; then
-        echo "Python $PYTHON_VERSION is not installed." >&2
+        echo "Python $1 is not installed."
         return 1
     fi
-
-    # Remove the version
     rm -rf "$PYTHON_INSTALL_DIR"
-    echo "Python $PYTHON_VERSION uninstalled successfully."
+    echo "Python $1 uninstalled successfully."
 }
 
-pvm_current() {
-    PYTHON_VERSION=$(python --version 2>&1 | awk '{print $2}')
-    echo "Current Python version is $PYTHON_VERSION"
-}
-
+# Add PVM_HOME to PATH
 pvm_add_to_path() {
     if [ -z "$PVM_HOME" ]; then
         export PVM_HOME="$PVM_DIR"
     fi
-
     if ! echo "$PATH" | grep -q "$PVM_HOME"; then
         export PATH="$PVM_HOME/bin:$PATH"
         echo "PVM_HOME has been added to PATH."
@@ -100,7 +91,7 @@ pvm_add_to_path() {
     fi
 }
 
-
+# Main entry point
 case "$1" in
     install)
         pvm_install "$2"
@@ -114,13 +105,10 @@ case "$1" in
     uninstall)
         pvm_uninstall "$2"
         ;;
-    current)
-        pvm_current
-        ;;
-    add_to_path)
+    add-to-path)
         pvm_add_to_path
         ;;
     *)
-        echo "Usage: pvm {install|use|ls|uninstall|current} [version]" >&2
+        echo "Usage: pvm {install|use|ls|uninstall|add-to-path} [version]" >&2
         ;;
 esac
