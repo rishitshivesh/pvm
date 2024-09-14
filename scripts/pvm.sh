@@ -3,6 +3,26 @@
 # Directory where PVM stores Python versions
 PVM_DIR="${HOME}/.pvm"
 mkdir -p "$PVM_DIR/versions"
+PVM_LATEST_RELEASE_URL="https://api.github.com/repos/rishitshivesh/pvm/releases/latest"
+
+# Function to print colorful messages
+print_info() {
+    printf "\033[1;32m$1\033[0m\n"  # Green
+}
+
+print_warning() {
+    printf "\033[1;33m$1\033[0m\n"  # Yellow
+}
+
+print_error() {
+    printf "\033[1;31m$1\033[0m\n"  # Red
+}
+
+# Function to fetch the latest GitHub release tag
+fetch_latest_pvm_version() {
+    curl -s "$PVM_LATEST_RELEASE_URL" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
 
 # Function to fetch the latest Python version from Python.org
 fetch_latest_python_version() {
@@ -148,6 +168,19 @@ add_pvm_to_profile() {
     fi
 }
 
+pvm_upgrade() {
+    LATEST_VERSION=$(fetch_latest_version)
+    CURRENT_VERSION=$(cat "$PVM_DIR/VERSION" 2>/dev/null || echo "none")
+
+    if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
+        print_info "Upgrading PVM from version $CURRENT_VERSION to $LATEST_VERSION..."
+        curl -o "$PVM_DIR/pvm.sh" "https://raw.githubusercontent.com/rishitshivesh/pvm/$LATEST_VERSION/scripts/pvm.sh"
+        echo "$LATEST_VERSION" > "$PVM_DIR/VERSION"
+        print_info "PVM upgraded to version $LATEST_VERSION"
+    else
+        print_info "PVM is already up to date (version: $CURRENT_VERSION)."
+    fi
+}
 
 # Main entry point
 case "$1" in
